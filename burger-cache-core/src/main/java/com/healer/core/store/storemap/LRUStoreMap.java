@@ -2,6 +2,7 @@ package com.healer.core.store.storemap;
 
 import com.healer.core.store.BaseStoreMap;
 import com.healer.core.store.node.StoreNode;
+import com.healer.core.utils.UnsafeUtil;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.experimental.Accessors;
@@ -71,9 +72,11 @@ public class LRUStoreMap<K, V> implements BaseStoreMap<K, V> {
             StoreNode<K, V> storeNode = storeMap.put(key, node);
             if (storeNode != null && storeNode.equals(node)) {
                 if (count.getAndIncrement() > capacity.get()) {
+                    StoreNode<K, V> poppedNode = popTailNode();
                     storeMap.remove(
-                            popTailNode().key()
+                            poppedNode.key()
                     );
+                    UnsafeUtil.freeObject(poppedNode);
                 }
                 return storeNode.value();
             }
