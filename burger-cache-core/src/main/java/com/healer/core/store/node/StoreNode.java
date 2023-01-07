@@ -1,9 +1,12 @@
 package com.healer.core.store.node;
 
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 
-@Data
+@Getter
+@Setter
 @Accessors(fluent = true, chain = true)
 public class StoreNode<K, V> {
 

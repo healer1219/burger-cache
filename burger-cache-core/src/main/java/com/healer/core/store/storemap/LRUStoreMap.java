@@ -3,30 +3,31 @@ package com.healer.core.store.storemap;
 import com.healer.core.store.BaseStoreMap;
 import com.healer.core.store.node.StoreNode;
 import com.healer.core.utils.UnsafeUtil;
-import lombok.Data;
-import lombok.NonNull;
+import lombok.*;
 import lombok.experimental.Accessors;
 
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
-@Data
-@Accessors
+@NoArgsConstructor
+@Getter
+@Setter
+@Accessors(fluent = true, chain = true)
 public class LRUStoreMap<K, V> implements BaseStoreMap<K, V> {
 
-    private ConcurrentMap<K, StoreNode<K, V>> storeMap = new ConcurrentHashMap<>();
+    private Map<K, StoreNode<K, V>> storeMap = new ConcurrentHashMap<>();
 
-    private AtomicInteger count;
+    private AtomicLong count;
 
-    private AtomicInteger capacity;
+    private AtomicLong capacity;
 
     private StoreNode<K, V> head, tail;
 
     public LRUStoreMap(int capacity) {
-        this.capacity = new AtomicInteger(capacity);
+        this.capacity = new AtomicLong(capacity);
+        this.count = new AtomicLong(0L);
 
         this.head = new StoreNode<>();
         this.tail = new StoreNode<>();
@@ -57,31 +58,14 @@ public class LRUStoreMap<K, V> implements BaseStoreMap<K, V> {
         if (key == null || value == null) {
             throw new NullPointerException();
         }
-
-        StoreNode<K, V> stored = storeMap.get(key);
-        if (stored != null) {
-            stored.value(
-                    value
-            );
-            return stored.value();
-        } else {
-            StoreNode<K, V> node = new StoreNode<>(
-                    key,
-                    value
-            );
-            StoreNode<K, V> storeNode = storeMap.put(key, node);
-            if (storeNode != null && storeNode.equals(node)) {
-                if (count.getAndIncrement() > capacity.get()) {
-                    StoreNode<K, V> poppedNode = popTailNode();
-                    storeMap.remove(
-                            poppedNode.key()
-                    );
-                    UnsafeUtil.freeObject(poppedNode);
-                }
-                return storeNode.value();
-            }
-        }
-        return null;
+        checkCapacity();
+        StoreNode<K, V> node = new StoreNode<>(
+                key,
+                value
+        );
+        storeMap.put(key, node);
+        addNode(node);
+        return node.value();
     }
 
     @Override
@@ -93,16 +77,22 @@ public class LRUStoreMap<K, V> implements BaseStoreMap<K, V> {
             // do nothing
             return;
         }
-        checkCapacity(map.size());
-        // todo putAll
+        map.forEach(this::put);
     }
 
     /**
-     * todo check the capacity
+     * check the capacity
      */
-    private void checkCapacity(int i) {
-
-
+    private void checkCapacity() {
+        if (count.incrementAndGet() >= capacity.get()) {
+            StoreNode<K, V> poppedNode = popTailNode();
+            if (poppedNode.key() != null) {
+                storeMap.remove(
+                        poppedNode.key()
+                );
+            }
+            poppedNode = null;
+        }
     }
 
 

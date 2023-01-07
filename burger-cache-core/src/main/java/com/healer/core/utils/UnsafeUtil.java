@@ -5,12 +5,19 @@ import sun.misc.Unsafe;
 import java.lang.reflect.Field;
 
 public final class UnsafeUtil {
+
+    private static Unsafe UNSAFE;
+
     private UnsafeUtil(){}
 
 
     private static Unsafe getUnsafe() {
+        if (UNSAFE != null) {
+            return UNSAFE;
+        }
         try {
-            return Unsafe.getUnsafe();
+            UNSAFE = Unsafe.getUnsafe();
+            return UNSAFE;
         } catch (SecurityException e) {
             // do nothing
         }
@@ -21,7 +28,8 @@ public final class UnsafeUtil {
                 field.setAccessible(true);
                 Object o = field.get(null);
                 if (unsafeClass.isInstance(o)) {
-                    return (Unsafe) o;
+                    UNSAFE = (Unsafe) o;
+                    return UNSAFE;
                 }
             }
         } catch (IllegalAccessException e) {
