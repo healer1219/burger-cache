@@ -1,5 +1,6 @@
 package com.healer.core.store.storemap;
 
+import com.healer.core.store.node.DoubleLinkedStoreNode;
 import com.healer.core.store.node.StoreNode;
 import com.healer.core.store.storemap.mock.User;
 import org.junit.jupiter.api.Assertions;
@@ -61,13 +62,13 @@ class LRUStoreMapTest {
     @Test
     void testHead() {
         StoreNode result = lRUStoreMap.head();
-        Assertions.assertEquals(new StoreNode("key", "value"), result);
+        Assertions.assertEquals(new DoubleLinkedStoreNode("key", "value"), result);
     }
 
     @Test
     void testTail() {
         StoreNode result = lRUStoreMap.tail();
-        Assertions.assertEquals(new StoreNode("key", "value"), result);
+        Assertions.assertEquals(new DoubleLinkedStoreNode("key", "value"), result);
     }
 
     @Test
@@ -90,13 +91,13 @@ class LRUStoreMapTest {
 
     @Test
     void testHead2() {
-        LRUStoreMap result = lRUStoreMap.head(new StoreNode("key", "value"));
+        LRUStoreMap result = lRUStoreMap.head(new DoubleLinkedStoreNode("key", "value"));
         Assertions.assertEquals(new LRUStoreMap(0), result);
     }
 
     @Test
     void testTail2() {
-        LRUStoreMap result = lRUStoreMap.tail(new StoreNode("key", "value"));
+        LRUStoreMap result = lRUStoreMap.tail(new DoubleLinkedStoreNode("key", "value"));
         Assertions.assertEquals(new LRUStoreMap(0), result);
     }
 
