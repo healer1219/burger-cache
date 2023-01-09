@@ -1,8 +1,7 @@
 package com.healer.core.store.storemap;
 
-import com.healer.core.store.BaseStoreMap;
-import com.healer.core.store.node.StoreNode;
-import com.healer.core.utils.UnsafeUtil;
+import com.healer.core.store.StoreMap;
+import com.healer.core.store.node.DoubleLinkedStoreNode;
 import lombok.*;
 import lombok.experimental.Accessors;
 
@@ -15,22 +14,22 @@ import java.util.concurrent.atomic.AtomicLong;
 @Getter
 @Setter
 @Accessors(fluent = true, chain = true)
-public class LRUStoreMap<K, V> implements BaseStoreMap<K, V> {
+public class LRUStoreMap<K, V> implements StoreMap<K, V> {
 
-    private Map<K, StoreNode<K, V>> storeMap = new ConcurrentHashMap<>();
+    private Map<K, DoubleLinkedStoreNode<K, V>> storeMap = new ConcurrentHashMap<>();
 
     private AtomicLong count;
 
     private AtomicLong capacity;
 
-    private StoreNode<K, V> head, tail;
+    private DoubleLinkedStoreNode<?, ?> head, tail;
 
     public LRUStoreMap(int capacity) {
         this.capacity = new AtomicLong(capacity);
         this.count = new AtomicLong(0L);
 
-        this.head = new StoreNode<>();
-        this.tail = new StoreNode<>();
+        this.head = new DoubleLinkedStoreNode<>();
+        this.tail = new DoubleLinkedStoreNode<>();
 
         head.postNode(tail);
         tail.preNode(head);
@@ -40,11 +39,11 @@ public class LRUStoreMap<K, V> implements BaseStoreMap<K, V> {
      * return the value which the specified key is mapped
      */
     @Override
-    public V get(@NonNull K key) {
-        StoreNode<K, V> storeNode = storeMap.get(key);
+    public DoubleLinkedStoreNode<K, V> get(@NonNull K key) {
+        DoubleLinkedStoreNode<K, V> storeNode = storeMap.get(key);
         Objects.requireNonNull(storeNode);
         moveToHead(storeNode);
-        return storeNode.value();
+        return storeNode;
     }
 
     /**
@@ -55,17 +54,16 @@ public class LRUStoreMap<K, V> implements BaseStoreMap<K, V> {
      */
     @Override
     public V put(K key, V value) {
-        if (key == null || value == null) {
-            throw new NullPointerException();
+        synchronized (this) {
+            if (key == null || value == null) {
+                throw new NullPointerException();
+            }
+            checkCapacity();
+            DoubleLinkedStoreNode<K, V> node = new DoubleLinkedStoreNode<>(key, value);
+            storeMap.put(key, node);
+            addNode(node);
+            return node.value();
         }
-        checkCapacity();
-        StoreNode<K, V> node = new StoreNode<>(
-                key,
-                value
-        );
-        storeMap.put(key, node);
-        addNode(node);
-        return node.value();
     }
 
     @Override
@@ -80,17 +78,25 @@ public class LRUStoreMap<K, V> implements BaseStoreMap<K, V> {
         map.forEach(this::put);
     }
 
+    @Override
+    public int size() {
+        return count.intValue();
+    }
+
     /**
      * check the capacity
      */
     private void checkCapacity() {
-        if (count.incrementAndGet() >= capacity.get()) {
-            StoreNode<K, V> poppedNode = popTailNode();
+        if (count.getAndIncrement() >= capacity.get()) {
+            DoubleLinkedStoreNode<?, ?> poppedNode = popTailNode();
             if (poppedNode.key() != null) {
                 storeMap.remove(
                         poppedNode.key()
                 );
             }
+            count.set(
+                    capacity.get()
+            );
             poppedNode = null;
         }
     }
@@ -102,7 +108,7 @@ public class LRUStoreMap<K, V> implements BaseStoreMap<K, V> {
      * add a node into the Linked Node List
      * @param storeNode a node use to store
      */
-    private void addNode(StoreNode<K, V> storeNode) {
+    private void addNode(DoubleLinkedStoreNode<?, ?> storeNode) {
         storeNode.preNode(head);
         storeNode.postNode(
                 head.postNode()
@@ -120,7 +126,7 @@ public class LRUStoreMap<K, V> implements BaseStoreMap<K, V> {
      * remove a node from Linked Node List
      * @param storeNode the node want to be removed
      */
-    private void removeNode(StoreNode<K,V> storeNode) {
+    private void removeNode(DoubleLinkedStoreNode<?, ?> storeNode) {
         storeNode.postNode().preNode(
                 storeNode.preNode()
         );
@@ -133,12 +139,12 @@ public class LRUStoreMap<K, V> implements BaseStoreMap<K, V> {
      * move a node to head
      * @param storeNode the node want to be moved to the head
      */
-    private void moveToHead(StoreNode<K, V> storeNode) {
+    private void moveToHead(DoubleLinkedStoreNode<?, ?> storeNode) {
         removeNode(storeNode);
         addNode(storeNode);
     }
 
-    private StoreNode<K, V> popTailNode() {
+    private DoubleLinkedStoreNode<?, ?> popTailNode() {
         removeNode(
                 tail.preNode()
         );

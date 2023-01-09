@@ -1,6 +1,5 @@
 package com.healer.core.store.node;
 
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -8,24 +7,27 @@ import lombok.experimental.Accessors;
 @Getter
 @Setter
 @Accessors(fluent = true, chain = true)
-public class StoreNode<K, V> {
-
+public abstract class StoreNode<K, V> {
     private K key;
 
     private V value;
 
-    private StoreNode<K, V> preNode;
+    private Class<?> keyClazz;
 
-    private StoreNode<K, V> postNode;
+    private Class<?> valueClazz;
 
-    public StoreNode(StoreNode<K, V> preNode, StoreNode<K, V> postNode) {
-        this.preNode = preNode;
-        this.postNode = postNode;
+
+    public void checkValueClazz(Class<?> clazz) {
+        if (!valueClazz.equals(clazz)) {
+            throw new RuntimeException();
+        }
     }
 
     public StoreNode(K key, V value) {
         this.key = key;
         this.value = value;
+        this.keyClazz = this.key.getClass();
+        this.valueClazz = this.value.getClass();
     }
 
     public StoreNode() {}
