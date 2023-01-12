@@ -81,3 +81,7 @@ publishing {
 
 
 }
+
+signing {
+    sign(publishing.publications.burgerCache)
+}
