@@ -1,4 +1,3 @@
 rootProject.name = 'burger-cache'
 include 'burger-cache-core'
-include 'burger-cache-core'
 

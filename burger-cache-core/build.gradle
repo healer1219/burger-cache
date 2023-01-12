@@ -24,6 +24,10 @@ dependencies {
     )
 }
 
-test {
-    useJUnitPlatform()
+java {
+    withSourcesJar()
 }
+
+//test {
+//    useJUnitPlatform()
+//}

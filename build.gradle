@@ -23,65 +23,84 @@ test {
     useJUnitPlatform()
 }
 
-jar {
-    manifest {
-        attributes 'Built-By': System.getProperty('user.name'),
-                'Build-Jdk': System.getProperty('java.version')
-    }
+tasks.register('withSourcesJar') {
+    from sourceSets.main.allJava
+}
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
 
+javadoc {
+    options.addStringOption("charset", "UTF-8")
+    if (JavaVersion.current().isJava9Compatible()) {
+        options.addBooleanOption('html5', true)
+    }
 }
 
 ext {
     isSnapShotVersion = project.version.endsWith("-SNAPSHOT")
 }
 
-publishing {
-    publications {
-        burgerCache(MavenPublication) {
-            groupId project.group
-            artifactId 'burger-cache'
-            version project.version
-            from components.java
+subprojects {
+    group 'io.github.healer1219'
+    version '0.1-SNAPSHOT'
 
-            pom {
-                name = 'burger-cache'
-                description = 'A lightweight Java heap Cache'
-                url = 'https://github.com/healer1219/burger-cache'
-                licenses {
-                    license {
-                        name = 'GNU General Public License v3.0'
-                        url = 'https://www.gnu.org/licenses/gpl-3.0.en.html'
+    apply {
+        plugin 'java'
+
+    }
+
+    publishing {
+        publications {
+            "$project.name"(MavenPublication) {
+                groupId project.group
+                artifactId project.name
+                version project.version
+                from components.java
+
+                pom {
+                    name = 'burger-cache'
+                    description = 'A lightweight Java heap Cache'
+                    url = 'https://github.com/healer1219/burger-cache'
+                    licenses {
+                        license {
+                            name = 'GNU General Public License v3.0'
+                            url = 'https://www.gnu.org/licenses/gpl-3.0.en.html'
+                        }
                     }
-                }
-                developers {
-                    developer {
-                        id = 'healer1219'
-                        name = 'healer1219'
-                        email = 'healer1219@163.com'
+                    developers {
+                        developer {
+                            id = 'healer1219'
+                            name = 'healer1219'
+                            email = 'healer1219@163.com'
+                        }
                     }
                 }
             }
         }
-    }
 
-    repositories {
-        maven {
-            credentials {
-                username System.getenv("OSSRH_USERNAME")
-                password System.getenv("OSSRH_PASSWORD")
-            }
-            if (isSnapShotVersion) {
-                url "https://s01.oss.sonatype.org/content/repositories/snapshots/"
-            } else {
-                url "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-            }
+        repositories {
+            maven {
+                credentials {
+                    username System.getenv("OSSRH_USERNAME")
+                    password System.getenv("OSSRH_PASSWORD")
+                }
+                if (isSnapShotVersion) {
+                    url "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+                } else {
+                    url "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+                }
 
+            }
         }
+
+
     }
-
-
 }
 
-signing {
-    sign(publishing.publications.burgerCache)
-}
+
+
+//signing {
+//    sign(publishing.publications.burgerCache)
+//}
