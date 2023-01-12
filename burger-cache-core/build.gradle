@@ -2,8 +2,8 @@ plugins {
     id 'java'
 }
 
-group 'com.healer'
-version '1.0-SNAPSHOT'
+group 'io.github.healer1219'
+version '0.1-SNAPSHOT'
 
 repositories {
     mavenCentral()
