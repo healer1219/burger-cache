@@ -1,4 +1,4 @@
-package com.healer.core;
+package com.healer.core.cache;
 
 import com.healer.core.store.StoreMap;
 

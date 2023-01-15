@@ -1,5 +1,6 @@
 package com.healer.core;
 
+import com.healer.core.cache.CoreCache;
 import com.healer.core.store.storemap.mock.User;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,16 +13,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.mockito.Mockito.*;
-
-class BurgerCacheManagerTest {
+class CoreCacheManagerTest {
     @Mock
     AtomicLong capacity;
     //Field expirationStrategy of type ExpirationStrategy - was not mocked since Mockito doesn't mock enums
     @Mock
-    BurgerCache cache;
+    CoreCache cache;
     @InjectMocks
-    BurgerCacheManager burgerCacheManager;
+    BurgerCache burgerCache;
 
     @BeforeEach
     void setUp() {
@@ -30,8 +29,8 @@ class BurgerCacheManagerTest {
 
     @Test
     void testCache() {
-        BurgerCache cache = new BurgerCacheManager(null, null)
-                .expirationStrategy(BurgerCacheManager.ExpirationStrategy.LRU)
+        CoreCache cache = new BurgerCache(null, null)
+                .expirationStrategy(BurgerCache.ExpirationStrategy.LRU)
                 .capacity(new AtomicLong(20))
                 .buildCache();
 
@@ -46,10 +45,10 @@ class BurgerCacheManagerTest {
     void testCacheCapacity() {
         List<Thread> putThreadList = new ArrayList<>();
         List<Thread> getThreadList = new ArrayList<>();
-        BurgerCacheManager burgerCacheManager = new BurgerCacheManager(null, null);
+        BurgerCache burgerCache = new BurgerCache(null, null);
 
-        BurgerCache cache = burgerCacheManager
-                .expirationStrategy(BurgerCacheManager.ExpirationStrategy.LRU)
+        CoreCache cache = burgerCache
+                .expirationStrategy(BurgerCache.ExpirationStrategy.LRU)
                 .capacity(new AtomicLong(20))
                 .buildCache();
 
@@ -90,8 +89,8 @@ class BurgerCacheManagerTest {
         getThreadList.parallelStream().forEach(Thread :: run);
 
         Assertions.assertEquals(
-                cache.getStoreMapSize(BurgerCache.StoreNames.DEFAULT_STORE.storeName()),
-                burgerCacheManager.capacity().intValue()
+                cache.getStoreMapSize(CoreCache.StoreNames.DEFAULT_STORE.storeName()),
+                burgerCache.capacity().intValue()
         );
     }
 

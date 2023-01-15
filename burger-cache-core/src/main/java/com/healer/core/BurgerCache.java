@@ -1,104 +1,49 @@
 package com.healer.core;
 
-import com.healer.core.store.StoreMap;
-import com.healer.core.store.node.StoreNode;
-import com.healer.core.store.storemap.LRUStoreMap;
+import com.healer.core.cache.CoreCache;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 
-public class BurgerCache implements BaseCache{
+public class BurgerCache {
 
+    private AtomicLong capacity;
 
-    private ConcurrentMap<String, StoreMap<String, Object>> cacheMap = new ConcurrentHashMap<>();
+    private ExpirationStrategy expirationStrategy;
 
-    public BurgerCache() {
-        LRUStoreMap<String, Object> defaultStoreMap = new LRUStoreMap<>();
-        cacheMap.put(StoreNames.DEFAULT_STORE.storeName(), defaultStoreMap);
+    private CoreCache cache;
+
+    public BurgerCache(AtomicLong capacity, ExpirationStrategy expirationStrategy) {
+        this.capacity = capacity == null ? new AtomicLong(Long.MAX_VALUE) : capacity;
+        this.expirationStrategy = expirationStrategy == null ? ExpirationStrategy.LRU : expirationStrategy;
     }
 
-    public BurgerCache(int capacity) {
-        LRUStoreMap<String, Object> defaultStoreMap = new LRUStoreMap<>(capacity);
-        cacheMap.put(StoreNames.DEFAULT_STORE.storeName(), defaultStoreMap);
+    public CoreCache buildCache() {
+        this.cache = new CoreCache(this.capacity.intValue());
+        return this.cache;
     }
 
-
-    @Override
-    public <T> T get(String key, Class<? extends T> clazz) {
-        return this.get(
-                key,
-                clazz,
-                StoreNames.DEFAULT_STORE.storeName()
-        );
+    public AtomicLong capacity() {
+        return capacity;
     }
 
-    @Override
-    public <T> T get(String key, Class<? extends T> clazz, String storeName) {
-        checkStore(storeName);
-        StoreMap<String, Object> storeMap = cacheMap.get(storeName);
-        StoreNode<?, ?> storeNode = storeMap.get(key);
-        if (storeNode != null) {
-            storeNode.checkValueClazz(clazz);
-            return clazz.cast(storeNode.value());
-        }
-        return null;
+    public BurgerCache capacity(AtomicLong capacity) {
+        this.capacity = capacity;
+        return this;
     }
 
-    @Override
-    public <T> T put(String key, T value) {
-        return this.put(
-                key,
-                value,
-                StoreNames.DEFAULT_STORE.storeName()
-                );
+    public ExpirationStrategy expirationStrategy() {
+        return expirationStrategy;
     }
 
-    @Override
-    public <T> T put(String key, T value, String storeName) {
-        checkStore(storeName);
-        StoreMap<String, Object> storeMap = cacheMap.get(storeName);
-        storeMap.put(key, value);
-        return value;
-    }
-
-    @Override
-    public void createStoreMap(String storeMapName , StoreMap<String, Object> storeMap) {
-        if (StoreNames.DEFAULT_STORE.storeName().equals(storeMapName)) {
-            throw new RuntimeException();
-        }
-        cacheMap.put(storeMapName, storeMap);
-    }
-
-    @Override
-    public int getStoreMapSize(String storeMapName) {
-        StoreMap<String, Object> storeMap = cacheMap.get(storeMapName);
-        return storeMap.size();
+    public BurgerCache expirationStrategy(ExpirationStrategy expirationStrategy) {
+        this.expirationStrategy = expirationStrategy;
+        return this;
     }
 
 
-    private void checkStore(String storeName) {
-        if (cacheMap == null || cacheMap.isEmpty() || !cacheMap.containsKey(storeName)) {
-            throw new RuntimeException();
-        }
-    }
-
-    enum StoreNames {
-        DEFAULT_STORE("default_store");
-
-        private String storeName;
-
-        StoreNames(String storeName) {
-            this.storeName = storeName;
-        }
-
-
-        public String storeName() {
-            return storeName;
-        }
-
-        public StoreNames storeName(String storeName) {
-            this.storeName = storeName;
-            return this;
-        }
+    public enum ExpirationStrategy {
+        LRU,
+        LFU,
+        TTL;
     }
 }
