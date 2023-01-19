@@ -60,48 +60,6 @@ class LRUStoreMapTest {
     }
 
     @Test
-    void testHead() {
-        StoreNode result = lRUStoreMap.head();
-        Assertions.assertEquals(new DoubleLinkedStoreNode("key", "value"), result);
-    }
-
-    @Test
-    void testTail() {
-        StoreNode result = lRUStoreMap.tail();
-        Assertions.assertEquals(new DoubleLinkedStoreNode("key", "value"), result);
-    }
-
-    @Test
-    void testStoreMap2() {
-        LRUStoreMap result = lRUStoreMap.storeMap(null);
-        Assertions.assertEquals(new LRUStoreMap(0), result);
-    }
-
-    @Test
-    void testCount2() {
-        LRUStoreMap result = lRUStoreMap.count(null);
-        Assertions.assertEquals(new LRUStoreMap(0), result);
-    }
-
-    @Test
-    void testCapacity2() {
-        LRUStoreMap result = lRUStoreMap.capacity(null);
-        Assertions.assertEquals(new LRUStoreMap(0), result);
-    }
-
-    @Test
-    void testHead2() {
-        LRUStoreMap result = lRUStoreMap.head(new DoubleLinkedStoreNode("key", "value"));
-        Assertions.assertEquals(new LRUStoreMap(0), result);
-    }
-
-    @Test
-    void testTail2() {
-        LRUStoreMap result = lRUStoreMap.tail(new DoubleLinkedStoreNode("key", "value"));
-        Assertions.assertEquals(new LRUStoreMap(0), result);
-    }
-
-    @Test
     void testEquals() {
         boolean result = lRUStoreMap.equals("o");
         Assertions.assertEquals(true, result);

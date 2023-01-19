@@ -1,5 +1,7 @@
-package com.healer.core.cache;
+package com.healer.core.cache.impl;
 
+import com.healer.core.cache.BaseCache;
+import com.healer.core.enums.ExpirationStrategy;
 import com.healer.core.store.StoreMap;
 import com.healer.core.store.node.StoreNode;
 import com.healer.core.store.storemap.LRUStoreMap;
@@ -7,7 +9,7 @@ import com.healer.core.store.storemap.LRUStoreMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public class CoreCache implements BaseCache{
+public class CoreCache implements BaseCache {
 
 
     private ConcurrentMap<String, StoreMap<String, Object>> cacheMap = new ConcurrentHashMap<>();
@@ -23,6 +25,13 @@ public class CoreCache implements BaseCache{
     }
 
 
+    /**
+     * get a
+     * @param key
+     * @param clazz
+     * @return
+     * @param <T>
+     */
     @Override
     public <T> T get(String key, Class<? extends T> clazz) {
         return this.get(
@@ -49,20 +58,36 @@ public class CoreCache implements BaseCache{
         return this.put(
                 key,
                 value,
-                StoreNames.DEFAULT_STORE.storeName()
+                StoreNames.DEFAULT_STORE.storeName(),
+                -1
                 );
     }
 
     @Override
     public <T> T put(String key, T value, String storeName) {
+        return this.put(
+                key,
+                value,
+                storeName,
+                -1
+        );
+    }
+
+    @Override
+    public <T> T put(String key, T value, String storeName, long expirationTime) {
         checkStore(storeName);
         StoreMap<String, Object> storeMap = cacheMap.get(storeName);
-        storeMap.put(key, value);
+        storeMap.put(key, value, expirationTime);
         return value;
     }
 
     @Override
-    public void createStoreMap(String storeMapName , StoreMap<String, Object> storeMap) {
+    public <K, V> StoreMap<K, V> createStoreMap(String storeMapName, Integer storeMapSize, ExpirationStrategy expirationStrategy) {
+        return null;
+    }
+
+    @Override
+    public void newStoreMap(String storeMapName , StoreMap<String, Object> storeMap) {
         if (StoreNames.DEFAULT_STORE.storeName().equals(storeMapName)) {
             throw new RuntimeException();
         }

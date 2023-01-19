@@ -1,6 +1,6 @@
 package com.healer.core;
 
-import com.healer.core.cache.CoreCache;
+import com.healer.core.cache.impl.CoreCache;
 import com.healer.core.store.storemap.mock.User;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,9 +29,8 @@ class CoreCacheManagerTest {
 
     @Test
     void testCache() {
-        CoreCache cache = new BurgerCache(null, null)
-                .expirationStrategy(BurgerCache.ExpirationStrategy.LRU)
-                .capacity(new AtomicLong(20))
+        CoreCache cache = new BurgerCache()
+                .capacity(20)
                 .buildCache();
 
         User testPut = cache.put("test1", new User());
@@ -41,25 +40,30 @@ class CoreCacheManagerTest {
         Assertions.assertEquals(testGet, testPut);
     }
 
+
     @Test
-    void testCacheCapacity() {
+    void testCacheExpiration() throws InterruptedException {
         List<Thread> putThreadList = new ArrayList<>();
         List<Thread> getThreadList = new ArrayList<>();
-        BurgerCache burgerCache = new BurgerCache(null, null);
+        BurgerCache burgerCache = new BurgerCache();
 
         CoreCache cache = burgerCache
-                .expirationStrategy(BurgerCache.ExpirationStrategy.LRU)
-                .capacity(new AtomicLong(20))
+                .capacity(20)
                 .buildCache();
 
         for (int i = 0; i < 10000; i++) {
             int finalI = i;
             putThreadList.add(
                     new Thread(
-                            () -> cache.put(
+                            () -> {cache.put(
                                     "test" + finalI,
-                                    new User("User-" + Thread.currentThread())
-                            )
+                                    new User("User-" + Thread.currentThread()),
+                                    "default_store",
+                                    1000
+                            );
+                                int defaultStore = cache.getStoreMapSize("default_store");
+                                System.out.println(Thread.currentThread() + "===========>  " + defaultStore);
+                            }
                     )
             );
             getThreadList.add(
@@ -70,8 +74,6 @@ class CoreCacheManagerTest {
                                             "test" + finalI,
                                             User.class
                                     );
-
-                                    System.out.println(user.getUserName());
                                 } catch (Exception e) {
                                     //do nothing
                                 }
@@ -88,8 +90,67 @@ class CoreCacheManagerTest {
         });
         getThreadList.parallelStream().forEach(Thread :: run);
 
+        Thread.sleep(1003);
+
         Assertions.assertEquals(
-                cache.getStoreMapSize(CoreCache.StoreNames.DEFAULT_STORE.storeName()),
+                cache.getStoreMapSize("default_store"),
+                0
+        );
+    }
+
+
+    @Test
+    void testCacheCapacity() {
+        List<Thread> putThreadList = new ArrayList<>();
+        List<Thread> getThreadList = new ArrayList<>();
+        BurgerCache burgerCache = new BurgerCache();
+
+        CoreCache cache = burgerCache
+                .capacity(20)
+                .buildCache();
+
+        for (int i = 0; i < 10000; i++) {
+            int finalI = i;
+            putThreadList.add(
+                    new Thread(
+                            () -> {cache.put(
+                                    "test" + finalI,
+                                    new User("User-" + Thread.currentThread())
+                            );
+                                int defaultStore = cache.getStoreMapSize("default_store");
+                                System.out.println(Thread.currentThread() + "===========>  " + defaultStore);
+                            }
+                    )
+            );
+            getThreadList.add(
+                    new Thread(
+                            () -> {
+                                try {
+                                    User user = cache.get(
+                                            "test" + finalI,
+                                            User.class
+                                    );
+
+                                    //System.out.println(user.getUserName());
+                                } catch (Exception e) {
+                                    //do nothing
+                                }
+                            }
+                    )
+            );
+        }
+        putThreadList.parallelStream().forEach(thread -> {
+            try {
+                thread.run();
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
+        });
+        getThreadList.parallelStream().forEach(Thread :: run);
+
+
+        Assertions.assertEquals(
+                cache.getStoreMapSize("default_store"),
                 burgerCache.capacity().intValue()
         );
     }

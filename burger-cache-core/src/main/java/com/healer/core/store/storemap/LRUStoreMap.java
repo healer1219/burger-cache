@@ -1,10 +1,13 @@
 package com.healer.core.store.storemap;
 
+import com.healer.core.enums.ExpirationStrategy;
 import com.healer.core.store.StoreMap;
 import com.healer.core.store.node.DoubleLinkedStoreNode;
+import com.healer.core.store.node.StoreNode;
 import lombok.*;
 import lombok.experimental.Accessors;
 
+import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,20 +19,23 @@ import java.util.concurrent.atomic.AtomicLong;
 @Accessors(fluent = true, chain = true)
 public class LRUStoreMap<K, V> implements StoreMap<K, V> {
 
-    private Map<K, DoubleLinkedStoreNode<K, V>> storeMap = new ConcurrentHashMap<>();
+    private Map<K, DoubleLinkedStoreNode<K, V>> storeMap;
 
     private AtomicLong count;
 
     private AtomicLong capacity;
 
+    private ExpirationStrategy expirationStrategy = ExpirationStrategy.LRU;
+
     private DoubleLinkedStoreNode<?, ?> head, tail;
 
     public LRUStoreMap(int capacity) {
+        Objects.requireNonNull(capacity);
         this.capacity = new AtomicLong(capacity);
+        this.storeMap = new ConcurrentHashMap<>((int) (this.capacity.get() / 0.75));
         this.count = new AtomicLong(0L);
-
-        this.head = new DoubleLinkedStoreNode<>();
-        this.tail = new DoubleLinkedStoreNode<>();
+        this.head = new DoubleLinkedStoreNode<>(this);
+        this.tail = new DoubleLinkedStoreNode<>(this);
 
         head.postNode(tail);
         tail.preNode(head);
@@ -46,6 +52,12 @@ public class LRUStoreMap<K, V> implements StoreMap<K, V> {
         return storeNode;
     }
 
+
+    @Override
+    public V put(K key, V value) {
+        return this.put(key, value, -1);
+    }
+
     /**
      * Put the value to the storeMap
      * Neither the key nor the value can be null.
@@ -53,13 +65,13 @@ public class LRUStoreMap<K, V> implements StoreMap<K, V> {
      * @throws RuntimeException when popTailNode or addNode failed
      */
     @Override
-    public V put(K key, V value) {
+    public V put(K key, V value, long expirationTime) {
         synchronized (this) {
             if (key == null || value == null) {
                 throw new NullPointerException();
             }
             checkCapacity();
-            DoubleLinkedStoreNode<K, V> node = new DoubleLinkedStoreNode<>(key, value);
+            DoubleLinkedStoreNode<K, V> node = new DoubleLinkedStoreNode<>(key, value, this, expirationTime);
             storeMap.put(key, node);
             addNode(node);
             return node.value();
@@ -83,6 +95,16 @@ public class LRUStoreMap<K, V> implements StoreMap<K, V> {
         return count.intValue();
     }
 
+    @Override
+    public void expireCache(StoreNode<K , V> expiredNode) {
+        DoubleLinkedStoreNode<K , V> storeNode = (DoubleLinkedStoreNode<K , V>) expiredNode;
+        if (storeMap.containsKey(storeNode.key())) {
+            removeNode(storeNode);
+            storeMap.remove(expiredNode.key());
+            count.decrementAndGet();
+        }
+    }
+
     /**
      * check the capacity
      */
@@ -94,6 +116,7 @@ public class LRUStoreMap<K, V> implements StoreMap<K, V> {
                         poppedNode.key()
                 );
             }
+            poppedNode.expirationTime(-1);
             count.set(
                     capacity.get()
             );
@@ -126,7 +149,7 @@ public class LRUStoreMap<K, V> implements StoreMap<K, V> {
      * remove a node from Linked Node List
      * @param storeNode the node want to be removed
      */
-    private void removeNode(DoubleLinkedStoreNode<?, ?> storeNode) {
+    private synchronized void removeNode(DoubleLinkedStoreNode<?, ?> storeNode) {
         storeNode.postNode().preNode(
                 storeNode.preNode()
         );

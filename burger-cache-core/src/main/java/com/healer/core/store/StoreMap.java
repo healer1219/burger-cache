@@ -11,7 +11,11 @@ public interface StoreMap<K, V> {
 
     V put(K key, V value);
 
+    V put(K key, V value, long expirationTime);
+
     void putAll(Map<? extends K, ? extends V> map);
 
     int size();
+
+    void expireCache(StoreNode<K , V> expiredNode);
 }

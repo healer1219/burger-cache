@@ -1,6 +1,7 @@
 package com.healer.core;
 
-import com.healer.core.cache.CoreCache;
+import com.healer.core.cache.impl.CoreCache;
+import com.healer.core.enums.ExpirationStrategy;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -8,17 +9,15 @@ public class BurgerCache {
 
     private AtomicLong capacity;
 
-    private ExpirationStrategy expirationStrategy;
-
     private CoreCache cache;
 
-    public BurgerCache(AtomicLong capacity, ExpirationStrategy expirationStrategy) {
-        this.capacity = capacity == null ? new AtomicLong(Long.MAX_VALUE) : capacity;
-        this.expirationStrategy = expirationStrategy == null ? ExpirationStrategy.LRU : expirationStrategy;
-    }
+    public BurgerCache() {}
 
     public CoreCache buildCache() {
-        this.cache = new CoreCache(this.capacity.intValue());
+        this.capacity = capacity == null ? new AtomicLong(Long.MAX_VALUE) : capacity;
+        if (this.cache == null) {
+            this.cache = new CoreCache(this.capacity.intValue());
+        }
         return this.cache;
     }
 
@@ -26,24 +25,17 @@ public class BurgerCache {
         return capacity;
     }
 
-    public BurgerCache capacity(AtomicLong capacity) {
-        this.capacity = capacity;
+    public BurgerCache capacity(Integer capacity) {
+        this.capacity = new AtomicLong(capacity);
         return this;
     }
 
-    public ExpirationStrategy expirationStrategy() {
-        return expirationStrategy;
-    }
+    public static class Builder {
+        private AtomicLong capacity;
 
-    public BurgerCache expirationStrategy(ExpirationStrategy expirationStrategy) {
-        this.expirationStrategy = expirationStrategy;
-        return this;
-    }
+        private ExpirationStrategy expirationStrategy;
 
+        private CoreCache cache;
 
-    public enum ExpirationStrategy {
-        LRU,
-        LFU,
-        TTL;
     }
 }
